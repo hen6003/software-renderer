@@ -77,9 +77,11 @@ fn main() -> Result<(), EventLoopError> {
                     Srgb::new(0, 0, 255),
                 );
 
+                let light_dir = Vec3::new(0.0, 0.0, -1.0);
+
                 for mesh in &scene.meshes {
                     for face in &mesh.faces {
-                        let vertices: [Vec3; 3] = [
+                        let world_coords: [Vec3; 3] = [
                             mesh.vertices[face[0] as usize].into(),
                             mesh.vertices[face[1] as usize].into(),
                             mesh.vertices[face[2] as usize].into(),
@@ -87,12 +89,22 @@ fn main() -> Result<(), EventLoopError> {
 
                         let half_screen = drawer.screen_size.as_vec2() * Vec2::splat(0.5);
                         let screen_coords = [
-                            (vertices[0].xy() + Vec2::ONE) * half_screen,
-                            (vertices[1].xy() + Vec2::ONE) * half_screen,
-                            (vertices[2].xy() + Vec2::ONE) * half_screen,
+                            (world_coords[0].xy() + Vec2::ONE) * half_screen,
+                            (world_coords[1].xy() + Vec2::ONE) * half_screen,
+                            (world_coords[2].xy() + Vec2::ONE) * half_screen,
                         ];
 
-                        drawer.triangle(screen_coords, Srgb::new(255, 255, 255));
+                        let n = (world_coords[2] - world_coords[0])
+                            .cross(world_coords[1] - world_coords[0])
+                            .normalize();
+                        let intensity = n.dot(light_dir);
+
+                        if intensity > 0.0 {
+                            let color: Srgb<u8> =
+                                Srgb::new(intensity, intensity, intensity).into_format();
+
+                            drawer.triangle(screen_coords, color);
+                        }
                     }
                 }
 
