@@ -52,6 +52,22 @@ fn main() -> Result<(), EventLoopError> {
                 window.request_redraw();
             }
             Event::WindowEvent {
+                event: WindowEvent::Resized(size),
+                ..
+            } => {
+                surface
+                    .resize(
+                        NonZeroU32::new(size.width).unwrap(),
+                        NonZeroU32::new(size.height).unwrap(),
+                    )
+                    .unwrap();
+
+                let mut buffer = surface.buffer_mut().unwrap();
+                for i in 0..(size.width * size.height) {
+                    buffer[i as usize] = 0;
+                }
+            }
+            Event::WindowEvent {
                 event: WindowEvent::RedrawRequested,
                 ..
             } => {
@@ -66,19 +82,7 @@ fn main() -> Result<(), EventLoopError> {
                     (size.width, size.height)
                 };
 
-                surface
-                    .resize(
-                        NonZeroU32::new(width).unwrap(),
-                        NonZeroU32::new(height).unwrap(),
-                    )
-                    .unwrap();
-
                 let mut drawer = Drawer::new(surface.buffer_mut().unwrap(), width, height);
-                drawer.clear();
-
-                drawer.line((13.0, 20.0), (80.0, 40.0), Srgb::new(255, 255, 255));
-                drawer.line((20.0, 13.0), (40.0, 80.0), Srgb::new(255, 0, 0));
-                drawer.line((80.0, 40.0), (13.0, 20.0), Srgb::new(255, 0, 0));
 
                 for mesh in &scene.meshes {
                     for face in &mesh.faces {
@@ -140,12 +144,6 @@ impl<'a> Drawer<'a> {
         self.screen_size
     }
 
-    pub fn clear(&mut self) {
-        for i in 0..(self.screen_size.x * self.screen_size.y) {
-            self.buffer[i as usize] = 0;
-        }
-    }
-
     pub fn pixel<P, S, C>(&mut self, pos: P, color: C)
     where
         P: Into<UVec2>,
@@ -161,57 +159,6 @@ impl<'a> Drawer<'a> {
                 color.blue as u32 | (color.green as u32) << 8 | (color.red as u32) << 16;
         }
     }
-
-    pub fn line<P, S, C>(&mut self, pos_1: P, pos_2: P, color: C)
-    where
-        P: Into<Vec2>,
-        C: Into<palette::rgb::Rgb<S, u8>> + Copy,
-        S: std::fmt::Debug,
-    {
-        let mut pos_1 = pos_1.into();
-        let mut pos_2 = pos_2.into();
-
-        let steep = (pos_1.x - pos_2.x).abs() < (pos_1.y - pos_2.y).abs();
-
-        if steep {
-            // if the line is steep, we transpose the image
-            std::mem::swap(&mut pos_1.x, &mut pos_1.y);
-            std::mem::swap(&mut pos_2.x, &mut pos_2.y);
-        }
-
-        if pos_1.x > pos_2.x {
-            // make it left−to−right
-            std::mem::swap(&mut pos_1, &mut pos_2);
-        }
-
-        for t in (pos_1.x.round() as usize..pos_2.x.round() as usize)
-            .map(|x| (x as f32 - pos_1.x) / (pos_2.x - pos_1.x))
-        {
-            let mut pos = pos_1 + (pos_2 - pos_1) * t;
-
-            if steep {
-                std::mem::swap(&mut pos.x, &mut pos.y);
-            }
-
-            self.pixel(pos.as_uvec2(), color);
-        }
-    }
-
-    //fn barycentric(pts: [UVec2; 3], p: UVec2) -> Vec3 {
-    //    let p = p.as_vec2();
-
-    //    let p1 = pts[0].as_vec2();
-    //    let p2 = pts[1].as_vec2();
-    //    let p3 = pts[2].as_vec2();
-
-    //    let lambda1 = ((p2.y - p3.y) * (p.x - p3.x) + (p3.x - p2.x) * (p.y - p3.y))
-    //        / ((p2.y - p3.y) * (p1.x - p3.x) + (p3.x - p2.x) * (p1.y - p3.y));
-    //    let lambda2 = ((p3.y - p1.y) * (p.x - p3.x) + (p1.x - p3.x) * (p.y - p3.y))
-    //        / ((p2.y - p3.y) * (p1.x - p3.x) + (p3.x - p2.x) * (p1.y - p3.y));
-    //    let lambda3 = 1.0 - lambda1 - lambda2;
-
-    //    Vec3::new(lambda1, lambda2, lambda3)
-    //}
 
     fn barycentric<P>(pts: [P; 3], p: Vec3) -> Vec3
     where
