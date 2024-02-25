@@ -1,7 +1,7 @@
 use std::{num::NonZeroU32, rc::Rc};
 
 use glam::{UVec2, Vec2, Vec3, Vec3Swizzles};
-use mesh_loader::Loader;
+use mesh_loader::{Loader, Scene};
 use palette::Srgb;
 use softbuffer::{Buffer, SoftBufferError};
 use winit::{
@@ -30,7 +30,7 @@ fn main() -> Result<(), EventLoopError> {
     event_loop.set_control_flow(ControlFlow::Wait);
 
     let mut frame = 0.0;
-    let mut light_dir = Vec3::new(0.0, 0.0, -1.0);
+    let mut light = Vec3::new(0.0, 0.0, -1.0);
 
     event_loop.run(move |event, elwt| {
         match event {
@@ -50,7 +50,7 @@ fn main() -> Result<(), EventLoopError> {
                 // applications which do not always need to. Applications that redraw continuously
                 // can render here instead.
 
-                light_dir = Vec3::new(1.0 * (frame as f32).sin(), 0.0, 1.0 * (frame as f32).cos());
+                light = Vec3::new(1.0 * (frame as f32).sin(), 0.0, 1.0 * (frame as f32).cos());
 
                 frame += 0.01;
 
@@ -80,36 +80,7 @@ fn main() -> Result<(), EventLoopError> {
 
                 let mut drawer = Drawer::new(surface.buffer_mut().unwrap(), width, height);
                 drawer.clear();
-
-                for mesh in &scene.meshes {
-                    for face in &mesh.faces {
-                        let world_coords: [Vec3; 3] = [
-                            mesh.vertices[face[0] as usize].into(),
-                            mesh.vertices[face[1] as usize].into(),
-                            mesh.vertices[face[2] as usize].into(),
-                        ];
-
-                        let half_screen = drawer.screen_size.as_vec2() * Vec2::splat(0.5);
-                        let screen_coords = [
-                            ((world_coords[0].xy() + Vec2::ONE) * half_screen)
-                                .extend(world_coords[0].z),
-                            ((world_coords[1].xy() + Vec2::ONE) * half_screen)
-                                .extend(world_coords[1].z),
-                            ((world_coords[2].xy() + Vec2::ONE) * half_screen)
-                                .extend(world_coords[2].z),
-                        ];
-
-                        let n = (world_coords[2] - world_coords[0])
-                            .cross(world_coords[1] - world_coords[0])
-                            .normalize();
-                        let intensity = n.dot(light_dir);
-
-                        let color = Srgb::new(intensity, intensity, intensity).into_format();
-
-                        drawer.triangle(screen_coords, color);
-                    }
-                }
-
+                drawer.scene(&scene, light);
                 drawer.finish().unwrap();
             }
             _ => (),
@@ -213,12 +184,42 @@ impl<'a> Drawer<'a> {
                     }
 
                     let width = self.screen_size().x as f32;
-                    if self.zbuffer[(p.x + p.y * width) as usize] < p.z {
+                    if ((p.x + p.y * width) as u32) < (self.screen_size().x * self.screen_size().y)
+                        && self.zbuffer[(p.x + p.y * width) as usize] < p.z
+                    {
                         self.zbuffer[(p.x + p.y * width) as usize] = p.z;
 
                         self.pixel(p.truncate().as_uvec2(), color)
                     }
                 }
+            }
+        }
+    }
+
+    pub fn scene(&mut self, scene: &Scene, light: Vec3) {
+        for mesh in &scene.meshes {
+            for face in &mesh.faces {
+                let world_coords: [Vec3; 3] = [
+                    mesh.vertices[face[0] as usize].into(),
+                    mesh.vertices[face[1] as usize].into(),
+                    mesh.vertices[face[2] as usize].into(),
+                ];
+
+                let half_screen = self.screen_size.as_vec2() * Vec2::splat(0.5);
+                let screen_coords = [
+                    ((world_coords[0].xy() + Vec2::ONE) * half_screen).extend(world_coords[0].z),
+                    ((world_coords[1].xy() + Vec2::ONE) * half_screen).extend(world_coords[1].z),
+                    ((world_coords[2].xy() + Vec2::ONE) * half_screen).extend(world_coords[2].z),
+                ];
+
+                let n = (world_coords[2] - world_coords[0])
+                    .cross(world_coords[1] - world_coords[0])
+                    .normalize();
+                let intensity = n.dot(light);
+
+                let color = Srgb::new(intensity, intensity, intensity).into_format();
+
+                self.triangle(screen_coords, color);
             }
         }
     }
