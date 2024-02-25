@@ -18,12 +18,7 @@ fn main() -> Result<(), EventLoopError> {
     let scene = loader.load_obj("test.obj").unwrap();
 
     let event_loop = EventLoop::new().unwrap();
-    let window = Rc::new(
-        WindowBuilder::new()
-            .with_transparent(true)
-            .build(&event_loop)
-            .unwrap(),
-    );
+    let window = Rc::new(WindowBuilder::new().build(&event_loop).unwrap());
     let context = softbuffer::Context::new(window.clone()).unwrap();
     let mut surface = softbuffer::Surface::new(&context, window.clone()).unwrap();
 
