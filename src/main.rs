@@ -18,7 +18,12 @@ fn main() -> Result<(), EventLoopError> {
     let scene = loader.load_obj("test.obj").unwrap();
 
     let event_loop = EventLoop::new().unwrap();
-    let window = Rc::new(WindowBuilder::new().build(&event_loop).unwrap());
+    let window = Rc::new(
+        WindowBuilder::new()
+            .with_transparent(true)
+            .build(&event_loop)
+            .unwrap(),
+    );
     let context = softbuffer::Context::new(window.clone()).unwrap();
     let mut surface = softbuffer::Surface::new(&context, window.clone()).unwrap();
 
@@ -99,8 +104,7 @@ fn main() -> Result<(), EventLoopError> {
                             .normalize();
                         let intensity = n.dot(light_dir);
 
-                        let color: Srgb<u8> =
-                            Srgb::new(intensity, intensity, intensity).into_format();
+                        let color = Srgb::new(intensity, intensity, intensity).into_format();
 
                         drawer.triangle(screen_coords, color);
                     }
@@ -157,57 +161,6 @@ impl<'a> Drawer<'a> {
                 color.blue as u32 | (color.green as u32) << 8 | (color.red as u32) << 16;
         }
     }
-
-    pub fn line<P, S, C>(&mut self, pos_1: P, pos_2: P, color: C)
-    where
-        P: Into<Vec2>,
-        C: Into<palette::rgb::Rgb<S, u8>> + Copy,
-        S: std::fmt::Debug,
-    {
-        let mut pos_1 = pos_1.into();
-        let mut pos_2 = pos_2.into();
-
-        let steep = (pos_1.x - pos_2.x).abs() < (pos_1.y - pos_2.y).abs();
-
-        if steep {
-            // if the line is steep, we transpose the image
-            std::mem::swap(&mut pos_1.x, &mut pos_1.y);
-            std::mem::swap(&mut pos_2.x, &mut pos_2.y);
-        }
-
-        if pos_1.x > pos_2.x {
-            // make it left−to−right
-            std::mem::swap(&mut pos_1, &mut pos_2);
-        }
-
-        for t in (pos_1.x.round() as usize..pos_2.x.round() as usize)
-            .map(|x| (x as f32 - pos_1.x) / (pos_2.x - pos_1.x))
-        {
-            let mut pos = pos_1 + (pos_2 - pos_1) * t;
-
-            if steep {
-                std::mem::swap(&mut pos.x, &mut pos.y);
-            }
-
-            self.pixel(pos.as_uvec2(), color);
-        }
-    }
-
-    //fn barycentric(pts: [UVec2; 3], p: UVec2) -> Vec3 {
-    //    let p = p.as_vec2();
-
-    //    let p1 = pts[0].as_vec2();
-    //    let p2 = pts[1].as_vec2();
-    //    let p3 = pts[2].as_vec2();
-
-    //    let lambda1 = ((p2.y - p3.y) * (p.x - p3.x) + (p3.x - p2.x) * (p.y - p3.y))
-    //        / ((p2.y - p3.y) * (p1.x - p3.x) + (p3.x - p2.x) * (p1.y - p3.y));
-    //    let lambda2 = ((p3.y - p1.y) * (p.x - p3.x) + (p1.x - p3.x) * (p.y - p3.y))
-    //        / ((p2.y - p3.y) * (p1.x - p3.x) + (p3.x - p2.x) * (p1.y - p3.y));
-    //    let lambda3 = 1.0 - lambda1 - lambda2;
-
-    //    Vec3::new(lambda1, lambda2, lambda3)
-    //}
 
     fn barycentric<P>(pts: [P; 3], p: Vec3) -> Vec3
     where
