@@ -1,6 +1,6 @@
 use std::{num::NonZeroU32, rc::Rc};
 
-use glam::{IVec3, UVec2, Vec2, Vec3, Vec3Swizzles};
+use glam::{UVec2, Vec2, Vec3, Vec3Swizzles};
 use mesh_loader::Loader;
 use palette::Srgb;
 use softbuffer::{Buffer, SoftBufferError};
@@ -84,27 +84,6 @@ fn main() -> Result<(), EventLoopError> {
                             mesh.vertices[face[1] as usize].into(),
                             mesh.vertices[face[2] as usize].into(),
                         ];
-
-                        //let screen_coords: Vec<Vec2> = vertices
-                        //    .iter()
-                        //    .map(|vert| {
-                        //        let half_screen = drawer.screen_size.as_vec2() * Vec2::splat(0.5);
-
-                        //        //let v_1 = vertices[p];
-                        //        //let v_2 = vertices[(p + 1) % 3];
-
-                        //        //let v_1 = Vec2::new(v_1[0] as f32, v_1[1] as f32);
-                        //        //let v_2 = Vec2::new(v_2[0] as f32, v_2[1] as f32);
-
-                        //        //let pos_1 = (v_1 + Vec2::splat(1.0)) * half_screen;
-                        //        //let pos_2 = (v_2 + Vec2::splat(1.0)) * half_screen;
-
-                        //        Vec2::new(
-                        //            (vert[0] + 1.0) * half_screen.x,
-                        //            (vert[1] + 1.0) * half_screen.y,
-                        //        )
-                        //    })
-                        //    .collect();
 
                         let half_screen = drawer.screen_size.as_vec2() * Vec2::splat(0.5);
                         let screen_coords = [
