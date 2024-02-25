@@ -45,9 +45,9 @@ fn main() -> Result<(), EventLoopError> {
                 // applications which do not always need to. Applications that redraw continuously
                 // can render here instead.
 
-                //light_dir = Vec3::new(0.0, 1.0 * (frame as f32).sin(), 1.0 * (frame as f32).cos());
+                light_dir = Vec3::new(0.0, 1.0 * (frame as f32).sin(), 1.0 * (frame as f32).cos());
 
-                //frame += 0.01;
+                frame += 0.01;
 
                 window.request_redraw();
             }
@@ -103,12 +103,10 @@ fn main() -> Result<(), EventLoopError> {
                             .normalize();
                         let intensity = n.dot(light_dir);
 
-                        if intensity > 0.0 {
-                            let color: Srgb<u8> =
-                                Srgb::new(intensity, intensity, intensity).into_format();
+                        let color: Srgb<u8> =
+                            Srgb::new(intensity, intensity, intensity).into_format();
 
-                            drawer.triangle(screen_coords, color);
-                        }
+                        drawer.triangle(screen_coords, color);
                     }
                 }
 
