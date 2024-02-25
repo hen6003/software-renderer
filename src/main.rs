@@ -255,8 +255,8 @@ impl<'a> Drawer<'a> {
         let bboxmin = bboxmin.as_uvec2();
         let bboxmax = bboxmax.as_uvec2();
 
-        for x in bboxmin.x..bboxmax.x {
-            for y in bboxmin.y..bboxmax.y {
+        for x in bboxmin.x..=bboxmax.x {
+            for y in bboxmin.y..=bboxmax.y {
                 let mut p = UVec2::new(x, y).as_vec2().extend(0.0);
                 let bc_screen = Self::barycentric(pts, p);
 
